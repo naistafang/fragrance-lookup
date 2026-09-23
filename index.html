@@ -6,6 +6,8 @@
 <title>Fragrance Lookup</title>
 <meta name="description" content="Price and stock lookup">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
 <style>
   :root {
@@ -197,8 +199,8 @@ async function refresh() {
     const feed = await (await fetch(LIVE_URL + (TAB ? "?tab=" + encodeURIComponent(TAB) : ""))).json();
     if (feed.error) throw new Error(feed.error);
     useFeed(feed);
-    lastFetched = feed.fetched;
-    setStatus("Live · checked " + time(feed.fetched), true);
+    lastFetched = feed.fetched = new Date().toISOString(); // when this device last got fresh stock
+    setStatus("Live · checked " + time(lastFetched), true);
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(feed)); } catch {}
   } catch (err) {
     let cached = null;
@@ -209,6 +211,13 @@ async function refresh() {
   }
 }
 
+// Show the last stock this device saw right away, then check for fresh stock.
+if (LIVE_URL) {
+  try {
+    const cached = JSON.parse(localStorage.getItem(CACHE_KEY));
+    if (cached?.fields) { useFeed(cached); lastFetched = cached.fetched; setStatus("Updating… (stock as of " + time(cached.fetched) + ")", false); }
+  } catch {}
+}
 refresh();
 if (LIVE_URL) {
   setInterval(() => { if (!document.hidden) refresh(); }, REFRESH_SECONDS * 1000);
