@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fragrance Lookup</title>
+<meta name="description" content="Price and stock lookup">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+  :root {
+    --bg: #f3f3f7; --surface: #ffffff; --text: #1b1923; --muted: #676476;
+    --border: #e1dfea; --accent: #6a3d9e; --ok: #23784a; --warn: #a56200; --out: #b3261e;
+    --mark: #e9dcfa; --chip: #f1ecf8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #121118; --surface: #1c1a24; --text: #edebf3; --muted: #a29fb2;
+      --border: #302d3c; --accent: #bb9cec; --ok: #6cc38f; --warn: #e3a84a; --out: #f07b72;
+      --mark: #4a3569; --chip: #2a2438;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #121118; --surface: #1c1a24; --text: #edebf3; --muted: #a29fb2;
+    --border: #302d3c; --accent: #bb9cec; --ok: #6cc38f; --warn: #e3a84a; --out: #f07b72;
+    --mark: #4a3569; --chip: #2a2438;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.4 "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 1; background: var(--bg);
+    padding: 16px 16px 10px; border-bottom: 1px solid var(--border); }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 13px; margin: 0 0 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+  input[type=search] { width: 100%; font: inherit; font-size: 17px; padding: 12px 14px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text); outline: none; }
+  input[type=search]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+  .meta { display: flex; justify-content: space-between; gap: 8px; color: var(--muted);
+    font-size: 13px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+  main { padding: 4px 16px 40px; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li { padding: 12px 2px; border-bottom: 1px solid var(--border);
+    display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; }
+  .name { font-weight: 700; overflow-wrap: anywhere; }
+  .brand { color: var(--muted); font-weight: 500; }
+  .price { font-weight: 800; color: var(--accent); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .details { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; color: var(--muted); align-items: center; }
+  .details b { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .left-ok b { color: var(--ok); } .left-low b { color: var(--warn); } .left-out b { color: var(--out); }
+  mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 1px; }
+  .note { font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--chip); color: var(--accent); }
+  #updated.live::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--ok); margin-right: 6px; vertical-align: 1px; }
+  #updated.stale { color: var(--warn); }
+  .empty { text-align: center; color: var(--muted); padding: 40px 0; }
+  @media (min-width: 640px) { li { padding: 14px 4px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Fragrance Lookup</h1>
+    <input id="q" type="search" placeholder="Search brand, fragrance, type, size…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Search">
+    <div class="meta"><span id="count">Loading…</span><span id="updated"></span></div>
+  </div>
+</header>
+<main><div class="wrap"><ul id="list"></ul><div id="empty" class="empty" hidden></div></div></main>
+
+<script src="clean.js"></script>
+<script>
+const MAX_SHOWN = 300;
+const $ = id => document.getElementById(id);
+let items = [];
+
+// Lowercase, strip accents (incl. Vietnamese đ), turn punctuation into spaces.
+function norm(s) {
+  return String(s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[đĐ]/g, "d").toLowerCase().replace(/[^a-z0-9.]+/g, " ").trim();
+}
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// Highlight query tokens inside original (accented) text, by mapping positions through norm per character.
+function highlight(text, tokens) {
+  text = String(text ?? "");
+  if (!tokens.length || !text) return esc(text);
+  const chars = [...text], normChars = chars.map(c => norm(c) || " ");
+  const flat = normChars.join(""), mark = new Array(chars.length).fill(false);
+  const owner = []; normChars.forEach((n, i) => { for (const _ of n) owner.push(i); });
+  for (const t of tokens) {
+    let p = flat.indexOf(t);
+    while (p !== -1) { for (let k = p; k < p + t.length; k++) mark[owner[k]] = true; p = flat.indexOf(t, p + 1); }
+  }
+  let out = "", open = false;
+  chars.forEach((c, i) => {
+    if (mark[i] && !open) { out += "<mark>"; open = true; }
+    if (!mark[i] && open) { out += "</mark>"; open = false; }
+    out += esc(c);
+  });
+  return out + (open ? "</mark>" : "");
+}
+
+// Brand part of the name is shown muted, the rest bold.
+function nameHtml(it, tokens) {
+  const name = it.name || "";
+  if (it.brand && name.startsWith(it.brand + " "))
+    return `<span class="brand">${highlight(it.brand, tokens)}</span> ${highlight(name.slice(it.brand.length + 1), tokens)}`;
+  return highlight(name, tokens);
+}
+
+function money(v) {
+  const n = Number(v);
+  return v !== "" && !isNaN(n) ? "$" + n.toLocaleString("en-US") : String(v ?? "");
+}
+
+function leftClass(v) {
+  const n = parseFloat(String(v).replace(/[^\d.-]/g, ""));
+  if (isNaN(n)) return "";
+  return n <= 0 ? "left-out" : n <= 2 ? "left-low" : "left-ok";
+}
+
+function render() {
+  const tokens = norm($("q").value).split(" ").filter(Boolean);
+  let hits = items;
+  if (tokens.length) {
+    hits = [];
+    for (const it of items) {
+      if (!tokens.every(t => it._hay.includes(t) || it._compact.includes(t))) continue;
+      // Rank: tokens that start a word score higher; brand/fragrance start is best.
+      let score = 0;
+      for (const t of tokens) {
+        if (it._name.startsWith(t)) score += 3;
+        else if (it._hay.includes(" " + t)) score += 2;
+      }
+      hits.push([score, it]);
+    }
+    hits = hits.sort((a, b) => b[0] - a[0]).map(h => h[1]);
+  }
+  $("count").textContent = `${hits.length} item${hits.length === 1 ? "" : "s"}` +
+    (hits.length > MAX_SHOWN ? ` (showing ${MAX_SHOWN})` : "");
+  $("list").innerHTML = hits.slice(0, MAX_SHOWN).map(it => `
+    <li>
+      <div class="name">${nameHtml(it, tokens)}</div>
+      <div class="price">${esc(money(it.price))}</div>
+      <div class="details">
+        ${it.volume ? `<span>Volume <b>${highlight(it.volume, tokens)}</b></span>` : ""}
+        ${it.note ? `<span class="note">${esc(it.note)}</span>` : ""}
+        ${it.stock !== "" ? `<span>Stock <b>${esc(it.stock)}</b></span>` : ""}
+        ${it.left !== "" ? `<span class="${leftClass(it.left)}">Left <b>${esc(it.left)}</b></span>` : ""}
+      </div>
+    </li>`).join("");
+  const empty = $("empty");
+  empty.hidden = hits.length > 0;
+  empty.textContent = items.length ? `No items match “${$("q").value}”.` : "No data yet.";
+}
+
+// ---------- data loading ----------
+const LIVE_URL = "https://script.google.com/macros/s/AKfycbzOT3M7UZVUsRINTDERmelYYHdT3nEFgTQ9DqeQ_Ig0Kxnh_if0bI_ytr1wmIu4CuNU/exec";      // Apps Script web app URL (ends in /exec); see README
+const TAB = "Sept-Oct";     // sheet tab to read; "" = first tab
+const REFRESH_SECONDS = 60; // how often to re-check stock while the page is open
+const CACHE_KEY = "lookup-feed";
+let lastFeed = "", lastFetched = null;
+
+function setItems(list) {
+  items = list.map(it => {
+    const hay = norm([it.name, it.volume, it.note].join(" "));
+    return { ...it, stock: it.stock ?? "", left: it.left ?? "",
+      _hay: " " + hay, _compact: hay.replace(/ /g, ""), _name: norm(it.name) };
+  }).sort((a, b) => a._name.localeCompare(b._name));
+  render();
+}
+
+function setStatus(text, live) {
+  const el = $("updated");
+  el.textContent = text;
+  el.className = live ? "live" : "stale";
+}
+
+const time = iso => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+function useFeed(feed) {
+  const key = JSON.stringify(feed.fields);
+  if (key !== lastFeed) { lastFeed = key; setItems(buildItems(feed.fields)); }
+}
+
+async function refresh() {
+  if (!LIVE_URL) { // no live feed configured: use the bundled snapshot
+    try {
+      const data = await (await fetch("data.json", { cache: "no-cache" })).json();
+      setItems(data.items || []);
+      if (data.updated) setStatus("Snapshot · " + new Date(data.updated).toLocaleString(), false);
+    } catch { $("count").textContent = "Could not load data."; }
+    return;
+  }
+  try {
+    const feed = await (await fetch(LIVE_URL + (TAB ? "?tab=" + encodeURIComponent(TAB) : ""))).json();
+    if (feed.error) throw new Error(feed.error);
+    useFeed(feed);
+    lastFetched = feed.fetched;
+    setStatus("Live · checked " + time(feed.fetched), true);
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(feed)); } catch {}
+  } catch (err) {
+    let cached = null;
+    try { cached = JSON.parse(localStorage.getItem(CACHE_KEY)); } catch {}
+    if (cached && !items.length) { useFeed(cached); lastFetched = cached.fetched; }
+    if (items.length) setStatus("Offline · stock as of " + time(lastFetched), false);
+    else $("count").textContent = "Could not reach the inventory. Check your connection and reload.";
+  }
+}
+
+refresh();
+if (LIVE_URL) {
+  setInterval(() => { if (!document.hidden) refresh(); }, REFRESH_SECONDS * 1000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+}
+
+let t;
+$("q").addEventListener("input", () => { clearTimeout(t); t = setTimeout(render, 60); });
+const q0 = new URLSearchParams(location.search).get("q");
+if (q0) $("q").value = q0;
+$("q").focus();
+</script>
+</body>
+</html>
