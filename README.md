@@ -3,6 +3,7 @@
 Price and stock lookup site that works on phones and desktops, hosted on GitHub Pages. It reads stock **live** from the private inventory sheet.
 
 - `index.html` is the site. The search ignores accents and capital letters, matches any part of a name, and takes words in any order. It re-checks stock every 60 seconds, and again whenever the page comes back into view.
+- On phones, workers can browse without typing: tap a brand, turn on **In stock**, or sort by price. The title tucks away while scrolling, and the site can be added to the home screen (Share → **Add to Home Screen** on iPhone, menu → **Install app** on Android). `manifest.webmanifest` and `icons/` make that work.
 - `clean.js` turns the raw sheet rows into search entries. It strips prices from names, splits price lists, builds names top row to bottom and fixes typos. **To fix a new typo, add a line to the tables at the top.**
 - `apps-script/Code.gs` is the live feed. It runs inside your Google account and returns **only** the Brand, Fragrance, Type, Volume, Price, Stock and Left rows. Buyer rows are never sent, and the sheet stays private.
 

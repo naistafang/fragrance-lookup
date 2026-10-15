@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Fragrance Lookup</title>
 <meta name="description" content="Price and stock lookup">
+<meta name="theme-color" content="#f3f3f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121118" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Lookup">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://script.google.com">
 <link rel="preconnect" href="https://script.googleusercontent.com">
@@ -32,16 +40,44 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--text);
     font: 16px/1.4 "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 1; background: var(--bg);
-    padding: 16px 16px 10px; border-bottom: 1px solid var(--border); }
+  /* Fixed header: the title slides away while scrolling down, without moving the list. */
+  header { position: fixed; top: 0; left: 0; right: 0; z-index: 2; background: var(--bg);
+    padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px 8px; border-bottom: 1px solid var(--border);
+    transition: transform .2s ease; }
+  header.compact { transform: translateY(calc(-1 * var(--title-h, 0px))); }
+  header.compact h1 { opacity: 0; }
   .wrap { max-width: 760px; margin: 0 auto; }
-  h1 { font-size: 13px; margin: 0 0 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
-  input[type=search] { width: 100%; font: inherit; font-size: 17px; padding: 12px 14px; border-radius: 10px;
-    border: 1px solid var(--border); background: var(--surface); color: var(--text); outline: none; }
+  h1 { font-size: 13px; margin: 0 0 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--accent);
+    transition: opacity .2s ease; }
+  .search { position: relative; }
+  input[type=search] { width: 100%; font: inherit; font-size: 17px; padding: 12px 46px 12px 14px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text); outline: none; -webkit-appearance: none; appearance: none; }
+  input[type=search]::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
   input[type=search]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+  #clear { position: absolute; right: 0; top: 0; bottom: 0; width: 46px; border: 0; background: none; color: var(--muted);
+    font-size: 22px; line-height: 1; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  #clear::before { content: "×"; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--chip); }
+  /* One row of chips that scrolls sideways: in-stock switch, sort, then brands. */
+  .filters { display: flex; gap: 8px; margin: 10px -16px 0; padding: 0 16px 2px; overflow-x: auto;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+  .filters::-webkit-scrollbar { display: none; }
+  .chip { flex: none; font: inherit; font-size: 14px; font-weight: 600; min-height: 36px; padding: 0 14px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; white-space: nowrap;
+    -webkit-tap-highlight-color: transparent; }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  .chip small { font-weight: 500; opacity: .7; margin-left: 4px; font-size: 12px; }
+  select.chip { -webkit-appearance: none; appearance: none; padding-right: 30px; field-sizing: content;
+    background: var(--surface) no-repeat right 12px center / 10px 6px
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23888' stroke-width='1.6'/%3E%3C/svg%3E"); }
+  .sep { flex: none; width: 1px; background: var(--border); margin: 6px 2px; }
   .meta { display: flex; justify-content: space-between; gap: 8px; color: var(--muted);
     font-size: 13px; margin-top: 8px; font-variant-numeric: tabular-nums; }
-  main { padding: 4px 16px 40px; }
+  main { padding: var(--header-h, 160px) 16px calc(env(safe-area-inset-bottom, 0px) + 80px); }
+  #top { position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); z-index: 2;
+    width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--accent);
+    font-size: 22px; box-shadow: 0 4px 14px rgb(0 0 0 / .15); cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transition: opacity .2s, transform .2s; }
+  #top[hidden] { display: block; opacity: 0; transform: translateY(12px); pointer-events: none; }
   ul { list-style: none; margin: 0; padding: 0; }
   li { padding: 12px 2px; border-bottom: 1px solid var(--border);
     display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; }
@@ -64,11 +100,25 @@
 <header>
   <div class="wrap">
     <h1>Fragrance Lookup</h1>
-    <input id="q" type="search" placeholder="Search brand, fragrance, type, size…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Search">
+    <div class="search">
+      <input id="q" type="search" placeholder="Search brand, fragrance, size…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Search">
+      <button id="clear" type="button" aria-label="Clear search" hidden></button>
+    </div>
+    <div class="filters" id="filters" role="toolbar" aria-label="Filters">
+      <button class="chip" id="instock" type="button" aria-pressed="false">In stock</button>
+      <select class="chip" id="sort" aria-label="Sort">
+        <option value="name">A–Z</option>
+        <option value="price-asc">Price ↑</option>
+        <option value="price-desc">Price ↓</option>
+      </select>
+      <span class="sep"></span>
+      <span id="brands" style="display:contents"></span>
+    </div>
     <div class="meta"><span id="count">Loading…</span><span id="updated"></span></div>
   </div>
 </header>
 <main><div class="wrap"><ul id="list"></ul><div id="empty" class="empty" hidden></div></div></main>
+<button id="top" type="button" aria-label="Back to top" hidden>↑</button>
 
 <script src="clean.js"></script>
 <script>
@@ -122,12 +172,30 @@ function leftClass(v) {
   return n <= 0 ? "left-out" : n <= 2 ? "left-low" : "left-ok";
 }
 
+const view = { brand: "", inStock: false, sort: "name" };
+
+const isOut = it => leftClass(it.left) === "left-out";
+const priceNum = it => { const n = parseFloat(String(it.price).replace(/[^\d.]/g, "")); return isNaN(n) ? null : n; };
+
+// One chip per brand, with how many items it has. Tapping a chip again clears it.
+function renderBrands() {
+  const counts = new Map();
+  for (const it of items) if (it.brand) counts.set(it.brand, (counts.get(it.brand) || 0) + 1);
+  if (view.brand && !counts.has(view.brand)) view.brand = "";
+  const chip = (b, label, n) => `<button class="chip" type="button" data-brand="${esc(b)}" aria-pressed="${view.brand === b}">` +
+    `${esc(label)}${n ? `<small>${n}</small>` : ""}</button>`;
+  $("brands").innerHTML = chip("", "All brands") +
+    [...counts].sort((a, b) => a[0].localeCompare(b[0])).map(([b, n]) => chip(b, b, n)).join("");
+}
+
 function render() {
   const tokens = norm($("q").value).split(" ").filter(Boolean);
-  let hits = items;
+  $("clear").hidden = !$("q").value;
+  const pool = items.filter(it => (!view.brand || it.brand === view.brand) && (!view.inStock || !isOut(it)));
+  let hits = pool;
   if (tokens.length) {
     hits = [];
-    for (const it of items) {
+    for (const it of pool) {
       if (!tokens.every(t => it._hay.includes(t) || it._compact.includes(t))) continue;
       // Rank: tokens that start a word score higher; brand/fragrance start is best.
       let score = 0;
@@ -139,8 +207,17 @@ function render() {
     }
     hits = hits.sort((a, b) => b[0] - a[0]).map(h => h[1]);
   }
+  if (view.sort !== "name") {
+    const dir = view.sort === "price-asc" ? 1 : -1;
+    hits = [...hits].sort((a, b) => {
+      const pa = priceNum(a), pb = priceNum(b);
+      if (pa === null || pb === null) return (pa === null) - (pb === null); // no price: last
+      return (pa - pb) * dir;
+    });
+  }
   $("count").textContent = `${hits.length} item${hits.length === 1 ? "" : "s"}` +
-    (hits.length > MAX_SHOWN ? ` (showing ${MAX_SHOWN})` : "");
+    (hits.length > MAX_SHOWN ? ` (showing ${MAX_SHOWN})` : "") +
+    (view.brand ? ` · ${view.brand}` : "") + (view.inStock ? " · in stock" : "");
   $("list").innerHTML = hits.slice(0, MAX_SHOWN).map(it => `
     <li>
       <div class="name">${nameHtml(it, tokens)}</div>
@@ -154,7 +231,10 @@ function render() {
     </li>`).join("");
   const empty = $("empty");
   empty.hidden = hits.length > 0;
-  empty.textContent = items.length ? `No items match “${$("q").value}”.` : "No data yet.";
+  const filtered = view.brand || view.inStock;
+  empty.textContent = !items.length ? "No data yet."
+    : tokens.length ? `No items match “${$("q").value}”${filtered ? " with these filters" : ""}.`
+    : "No items match these filters.";
 }
 
 // ---------- data loading ----------
@@ -170,6 +250,7 @@ function setItems(list) {
     return { ...it, stock: it.stock ?? "", left: it.left ?? "",
       _hay: " " + hay, _compact: hay.replace(/ /g, ""), _name: norm(it.name) };
   }).sort((a, b) => a._name.localeCompare(b._name));
+  renderBrands();
   render();
 }
 
@@ -256,11 +337,59 @@ if (LIVE_URL) {
   document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
 }
 
+// ---------- controls ----------
 let t;
-$("q").addEventListener("input", () => { clearTimeout(t); t = setTimeout(render, 60); });
+const q = $("q");
+q.addEventListener("input", () => { clearTimeout(t); t = setTimeout(render, 60); });
+q.addEventListener("keydown", e => { if (e.key === "Enter") q.blur(); }); // "Search" key hides the keyboard
+$("clear").addEventListener("click", () => { q.value = ""; render(); q.focus(); });
+
+const toTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+$("instock").addEventListener("click", e => {
+  view.inStock = !view.inStock;
+  e.currentTarget.setAttribute("aria-pressed", view.inStock);
+  render(); toTop();
+});
+$("sort").addEventListener("change", e => { view.sort = e.target.value; render(); toTop(); });
+$("brands").addEventListener("click", e => {
+  const chip = e.target.closest("[data-brand]");
+  if (!chip) return;
+  view.brand = view.brand === chip.dataset.brand ? "" : chip.dataset.brand;
+  for (const c of $("brands").children) c.setAttribute("aria-pressed", c.dataset.brand === view.brand);
+  render(); toTop();
+});
+$("top").addEventListener("click", toTop);
+
+// Keep the list clear of the fixed header, and know how far the title slides away.
+const header = document.querySelector("header");
+const fitHeader = () => {
+  document.documentElement.style.setProperty("--header-h", header.offsetHeight + "px");
+  const h1 = header.querySelector("h1");
+  document.documentElement.style.setProperty("--title-h", h1.offsetHeight + parseFloat(getComputedStyle(h1).marginBottom) + "px");
+};
+new ResizeObserver(fitHeader).observe(header);
+fitHeader();
+
+// Scrolling down tucks the title away and shows a back-to-top button; scrolling up brings the title back.
+let lastY = window.scrollY;
+window.addEventListener("scroll", () => {
+  const y = window.scrollY;
+  if (Math.abs(y - lastY) < 8) return;
+  // Back-to-top shows only while scrolling up, so it doesn't sit on top of prices.
+  header.classList.toggle("compact", y > lastY && y > 60);
+  $("top").hidden = y > lastY || y < 600;
+  lastY = y;
+}, { passive: true });
+
+// Starting to scroll the list hides the phone keyboard so more results fit.
+document.querySelector("main").addEventListener("touchmove", () => {
+  if (document.activeElement === q) q.blur();
+}, { passive: true });
+
 const q0 = new URLSearchParams(location.search).get("q");
-if (q0) $("q").value = q0;
-$("q").focus();
+if (q0) { q.value = q0; render(); }
+// On computers, start typing right away. On phones, don't pop the keyboard over the list.
+if (matchMedia("(hover: hover) and (pointer: fine)").matches) q.focus();
 </script>
 </body>
 </html>
