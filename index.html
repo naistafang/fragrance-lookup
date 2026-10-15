@@ -57,16 +57,31 @@
   #clear { position: absolute; right: 0; top: 0; bottom: 0; width: 46px; border: 0; background: none; color: var(--muted);
     font-size: 22px; line-height: 1; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   #clear::before { content: "×"; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--chip); }
-  /* One row of filters: brand dropdown, in-stock switch, sort. */
+  /* One row of filters: brand picker, in-stock switch, sort. */
   .filters { display: flex; gap: 8px; margin-top: 10px; }
   .chip { flex: none; font: inherit; font-size: 14px; font-weight: 600; min-height: 36px; padding: 0 14px; border-radius: 999px;
     border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; white-space: nowrap;
     -webkit-tap-highlight-color: transparent; }
-  .chip[aria-pressed="true"], select.chip.on { background-color: var(--accent); border-color: var(--accent); color: var(--bg); }
-  #brand { flex: 1 1 auto; min-width: 0; text-overflow: ellipsis; }
-  select.chip { -webkit-appearance: none; appearance: none; padding-right: 30px; field-sizing: content;
+  .chip[aria-pressed="true"], .chip.on { background-color: var(--accent); border-color: var(--accent); color: var(--bg); }
+  #brand { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+  #brand[aria-expanded="true"] { border-color: var(--accent); }
+  select.chip, .chip.drop { -webkit-appearance: none; appearance: none; padding-right: 30px; field-sizing: content;
     background: var(--surface) no-repeat right 12px center / 10px 6px
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23888' stroke-width='1.6'/%3E%3C/svg%3E"); }
+  /* Brand picker: first letter, then the brands under it. */
+  .panel { margin-top: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface);
+    max-height: min(60vh, 420px); overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 12px; }
+  .panel[hidden] { display: none; }
+  .panel-label { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .letters { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 6px; }
+  .letter { font: inherit; font-weight: 700; font-size: 16px; height: 42px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .letter:disabled { color: var(--border); border-color: transparent; background: none; cursor: default; }
+  .letter[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  .brand-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .brand-list .chip { flex: none; }
+  .brand-list .chip small { font-weight: 500; opacity: .7; margin-left: 4px; font-size: 12px; }
+  .hint { color: var(--muted); font-size: 14px; }
   .meta { display: flex; justify-content: space-between; gap: 8px; color: var(--muted);
     font-size: 13px; margin-top: 8px; font-variant-numeric: tabular-nums; }
   main { padding: var(--header-h, 160px) 16px calc(env(safe-area-inset-bottom, 0px) + 80px); }
@@ -102,13 +117,18 @@
       <button id="clear" type="button" aria-label="Clear search" hidden></button>
     </div>
     <div class="filters" id="filters" role="toolbar" aria-label="Filters">
-      <select class="chip" id="brand" aria-label="Brand"><option value="">All brands</option></select>
+      <button class="chip drop" id="brand" type="button" aria-expanded="false" aria-controls="brand-panel">All brands</button>
       <button class="chip" id="instock" type="button" aria-pressed="false">In stock</button>
       <select class="chip" id="sort" aria-label="Sort">
         <option value="name">A–Z</option>
         <option value="price-asc">Price ↑</option>
         <option value="price-desc">Price ↓</option>
       </select>
+    </div>
+    <div class="panel" id="brand-panel" hidden>
+      <div class="panel-label">First letter of the brand</div>
+      <div class="letters" id="letters"></div>
+      <div class="brand-list" id="brand-list"></div>
     </div>
     <div class="meta"><span id="count">Loading…</span><span id="updated"></span></div>
   </div>
@@ -173,16 +193,39 @@ const view = { brand: "", inStock: false, sort: "name" };
 const isOut = it => leftClass(it.left) === "left-out";
 const priceNum = it => { const n = parseFloat(String(it.price).replace(/[^\d.]/g, "")); return isNaN(n) ? null : n; };
 
-// Brand dropdown, A to Z, with how many items each brand has.
+// Brand picker: brands grouped by first letter ("#" for anything that isn't A to Z).
+let brandGroups = new Map(), pickLetter = "";
+const letterOf = b => { const c = norm(b)[0]?.toUpperCase() || "#"; return c >= "A" && c <= "Z" ? c : "#"; };
+
 function renderBrands() {
   const counts = new Map();
   for (const it of items) if (it.brand) counts.set(it.brand, (counts.get(it.brand) || 0) + 1);
   if (view.brand && !counts.has(view.brand)) view.brand = "";
-  $("brand").innerHTML = `<option value="">All brands</option>` +
-    [...counts].sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([b, n]) => `<option value="${esc(b)}">${esc(b)} (${n})</option>`).join("");
-  $("brand").value = view.brand;
+  brandGroups = new Map();
+  for (const [b, n] of [...counts].sort((a, b) => a[0].localeCompare(b[0]))) {
+    const l = letterOf(b);
+    if (!brandGroups.has(l)) brandGroups.set(l, []);
+    brandGroups.get(l).push([b, n]);
+  }
+  $("brand").textContent = view.brand || "All brands";
   $("brand").classList.toggle("on", !!view.brand);
+  renderPanel();
+}
+
+function renderPanel() {
+  $("letters").innerHTML = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ#"].map(l =>
+    `<button class="letter" type="button" data-letter="${l}" aria-pressed="${l === pickLetter}"${brandGroups.has(l) ? "" : " disabled"}>${l}</button>`).join("");
+  const chip = (b, label, n) => `<button class="chip" type="button" data-brand="${esc(b)}" aria-pressed="${view.brand === b}">` +
+    `${esc(label)}${n ? `<small>${n}</small>` : ""}</button>`;
+  $("brand-list").innerHTML = chip("", "All brands") + (pickLetter
+    ? (brandGroups.get(pickLetter) || []).map(([b, n]) => chip(b, b, n)).join("")
+    : `<span class="hint">Pick a letter to see its brands.</span>`);
+}
+
+function openPanel(open) {
+  $("brand-panel").hidden = !open;
+  $("brand").setAttribute("aria-expanded", open);
+  if (open) { pickLetter = view.brand ? letterOf(view.brand) : ""; renderPanel(); q.blur(); }
 }
 
 function render() {
@@ -348,11 +391,25 @@ $("instock").addEventListener("click", e => {
   render(); toTop();
 });
 $("sort").addEventListener("change", e => { view.sort = e.target.value; render(); toTop(); });
-$("brand").addEventListener("change", e => {
-  view.brand = e.target.value;
-  e.target.classList.toggle("on", !!view.brand);
+$("brand").addEventListener("click", () => openPanel($("brand-panel").hidden));
+$("letters").addEventListener("click", e => {
+  const b = e.target.closest("[data-letter]");
+  if (!b || b.disabled) return;
+  pickLetter = b.dataset.letter;
+  renderPanel();
+});
+$("brand-list").addEventListener("click", e => {
+  const b = e.target.closest("[data-brand]");
+  if (!b) return;
+  view.brand = b.dataset.brand;
+  $("brand").textContent = view.brand || "All brands";
+  $("brand").classList.toggle("on", !!view.brand);
+  openPanel(false);
   render(); toTop();
 });
+// Tapping the list or pressing Escape closes the picker.
+document.querySelector("main").addEventListener("pointerdown", () => openPanel(false));
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("brand-panel").hidden) openPanel(false); });
 $("top").addEventListener("click", toTop);
 
 // Keep the list clear of the fixed header, and know how far the title slides away.
