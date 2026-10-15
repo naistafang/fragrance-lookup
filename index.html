@@ -57,19 +57,16 @@
   #clear { position: absolute; right: 0; top: 0; bottom: 0; width: 46px; border: 0; background: none; color: var(--muted);
     font-size: 22px; line-height: 1; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   #clear::before { content: "×"; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--chip); }
-  /* One row of chips that scrolls sideways: in-stock switch, sort, then brands. */
-  .filters { display: flex; gap: 8px; margin: 10px -16px 0; padding: 0 16px 2px; overflow-x: auto;
-    scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
-  .filters::-webkit-scrollbar { display: none; }
+  /* One row of filters: brand dropdown, in-stock switch, sort. */
+  .filters { display: flex; gap: 8px; margin-top: 10px; }
   .chip { flex: none; font: inherit; font-size: 14px; font-weight: 600; min-height: 36px; padding: 0 14px; border-radius: 999px;
     border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; white-space: nowrap;
     -webkit-tap-highlight-color: transparent; }
-  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
-  .chip small { font-weight: 500; opacity: .7; margin-left: 4px; font-size: 12px; }
+  .chip[aria-pressed="true"], select.chip.on { background-color: var(--accent); border-color: var(--accent); color: var(--bg); }
+  #brand { flex: 1 1 auto; min-width: 0; text-overflow: ellipsis; }
   select.chip { -webkit-appearance: none; appearance: none; padding-right: 30px; field-sizing: content;
     background: var(--surface) no-repeat right 12px center / 10px 6px
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23888' stroke-width='1.6'/%3E%3C/svg%3E"); }
-  .sep { flex: none; width: 1px; background: var(--border); margin: 6px 2px; }
   .meta { display: flex; justify-content: space-between; gap: 8px; color: var(--muted);
     font-size: 13px; margin-top: 8px; font-variant-numeric: tabular-nums; }
   main { padding: var(--header-h, 160px) 16px calc(env(safe-area-inset-bottom, 0px) + 80px); }
@@ -105,14 +102,13 @@
       <button id="clear" type="button" aria-label="Clear search" hidden></button>
     </div>
     <div class="filters" id="filters" role="toolbar" aria-label="Filters">
+      <select class="chip" id="brand" aria-label="Brand"><option value="">All brands</option></select>
       <button class="chip" id="instock" type="button" aria-pressed="false">In stock</button>
       <select class="chip" id="sort" aria-label="Sort">
         <option value="name">A–Z</option>
         <option value="price-asc">Price ↑</option>
         <option value="price-desc">Price ↓</option>
       </select>
-      <span class="sep"></span>
-      <span id="brands" style="display:contents"></span>
     </div>
     <div class="meta"><span id="count">Loading…</span><span id="updated"></span></div>
   </div>
@@ -177,15 +173,16 @@ const view = { brand: "", inStock: false, sort: "name" };
 const isOut = it => leftClass(it.left) === "left-out";
 const priceNum = it => { const n = parseFloat(String(it.price).replace(/[^\d.]/g, "")); return isNaN(n) ? null : n; };
 
-// One chip per brand, with how many items it has. Tapping a chip again clears it.
+// Brand dropdown, A to Z, with how many items each brand has.
 function renderBrands() {
   const counts = new Map();
   for (const it of items) if (it.brand) counts.set(it.brand, (counts.get(it.brand) || 0) + 1);
   if (view.brand && !counts.has(view.brand)) view.brand = "";
-  const chip = (b, label, n) => `<button class="chip" type="button" data-brand="${esc(b)}" aria-pressed="${view.brand === b}">` +
-    `${esc(label)}${n ? `<small>${n}</small>` : ""}</button>`;
-  $("brands").innerHTML = chip("", "All brands") +
-    [...counts].sort((a, b) => a[0].localeCompare(b[0])).map(([b, n]) => chip(b, b, n)).join("");
+  $("brand").innerHTML = `<option value="">All brands</option>` +
+    [...counts].sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([b, n]) => `<option value="${esc(b)}">${esc(b)} (${n})</option>`).join("");
+  $("brand").value = view.brand;
+  $("brand").classList.toggle("on", !!view.brand);
 }
 
 function render() {
@@ -351,11 +348,9 @@ $("instock").addEventListener("click", e => {
   render(); toTop();
 });
 $("sort").addEventListener("change", e => { view.sort = e.target.value; render(); toTop(); });
-$("brands").addEventListener("click", e => {
-  const chip = e.target.closest("[data-brand]");
-  if (!chip) return;
-  view.brand = view.brand === chip.dataset.brand ? "" : chip.dataset.brand;
-  for (const c of $("brands").children) c.setAttribute("aria-pressed", c.dataset.brand === view.brand);
+$("brand").addEventListener("change", e => {
+  view.brand = e.target.value;
+  e.target.classList.toggle("on", !!view.brand);
   render(); toTop();
 });
 $("top").addEventListener("click", toTop);
