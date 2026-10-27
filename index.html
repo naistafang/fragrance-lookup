@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://script.google.com">
 <link rel="preconnect" href="https://script.googleusercontent.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;600;700&family=Archivo:wght@400;500;600;700&display=swap">
 <style>
   /* Always dark, whatever the phone's setting. */
   :root {
@@ -26,7 +26,7 @@
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--text);
-    font: 16px/1.4 "Barlow", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    font: 16px/1.4 "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
   /* Fixed header: the title slides away while scrolling down, without moving the list. */
   header { position: fixed; top: 0; left: 0; right: 0; z-index: 2; background: var(--bg);
     padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px 8px; border-bottom: 1px solid var(--border);
@@ -34,7 +34,7 @@
   header.compact { transform: translateY(calc(-1 * var(--title-h, 0px))); }
   header.compact h1 { opacity: 0; }
   .wrap { max-width: 760px; margin: 0 auto; }
-  h1 { font: 700 21px/1.1 "Barlow Condensed", sans-serif; margin: 0 0 10px; color: var(--text);
+  h1 { font: 700 21px/1.1 "Archivo Narrow", sans-serif; margin: 0 0 10px; color: var(--text);
     transition: opacity .2s ease; }
   .search { position: relative; }
   input[type=search] { width: 100%; font: inherit; font-size: 17px; padding: 12px 46px 12px 14px; border-radius: 10px;
@@ -83,9 +83,9 @@
   li { padding: 8px 4px; border-bottom: 1px solid var(--border);
     display: grid; grid-template-columns: 1fr auto; gap: 1px 10px; align-items: baseline; }
   li:nth-child(even) { background: var(--surface); }
-  .name { font: 600 18px/1.2 "Barlow Condensed", sans-serif; overflow-wrap: anywhere; }
+  .name { font: 600 18px/1.2 "Archivo Narrow", sans-serif; overflow-wrap: anywhere; }
   .brand { color: var(--muted); font-weight: 500; }
-  .price { font: 700 21px/1.1 "Barlow Condensed", sans-serif; color: var(--accent); text-align: right; white-space: nowrap; }
+  .price { font: 700 21px/1.1 "Archivo Narrow", sans-serif; color: var(--accent); text-align: right; white-space: nowrap; }
   .details { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 13px; color: var(--muted); align-items: center; }
   .details b { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
   .vol { font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
