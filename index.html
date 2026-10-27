@@ -5,41 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Fragrance Lookup</title>
 <meta name="description" content="Price and stock lookup">
-<meta name="theme-color" content="#f3f3f7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#121118" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#0f1216">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Lookup">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://script.google.com">
 <link rel="preconnect" href="https://script.googleusercontent.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap">
 <style>
+  /* Always dark, whatever the phone's setting. */
   :root {
-    --bg: #f3f3f7; --surface: #ffffff; --text: #1b1923; --muted: #676476;
-    --border: #e1dfea; --accent: #6a3d9e; --fill: #6a3d9e; --on-fill: #ffffff; --ok: #23784a; --warn: #a56200; --out: #b3261e;
-    --mark: #e9dcfa; --chip: #f1ecf8;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      color-scheme: dark;
-      --bg: #121118; --surface: #1c1a24; --text: #edebf3; --muted: #a29fb2;
-      --border: #302d3c; --accent: #bb9cec; --fill: #7a4fc0; --on-fill: #ffffff; --ok: #6cc38f; --warn: #e3a84a; --out: #f07b72;
-      --mark: #4a3569; --chip: #2a2438;
-    }
-  }
-  :root[data-theme="dark"] {
     color-scheme: dark;
-    --bg: #121118; --surface: #1c1a24; --text: #edebf3; --muted: #a29fb2;
-    --border: #302d3c; --accent: #bb9cec; --fill: #7a4fc0; --on-fill: #ffffff; --ok: #6cc38f; --warn: #e3a84a; --out: #f07b72;
-    --mark: #4a3569; --chip: #2a2438;
+    --bg: #0f1216; --surface: #191d23; --text: #eceff3; --muted: #9aa2ad;
+    --border: #2a3038; --accent: #7db7f2; --fill: #2f78c4; --on-fill: #ffffff; --ok: #79cf9c; --warn: #e6ae55; --out: #f2847b;
+    --mark: #1f4467; --chip: #1f252d;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--text);
-    font: 16px/1.4 "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    font: 16px/1.4 "Barlow", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
   /* Fixed header: the title slides away while scrolling down, without moving the list. */
   header { position: fixed; top: 0; left: 0; right: 0; z-index: 2; background: var(--bg);
     padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px 8px; border-bottom: 1px solid var(--border);
@@ -47,7 +34,7 @@
   header.compact { transform: translateY(calc(-1 * var(--title-h, 0px))); }
   header.compact h1 { opacity: 0; }
   .wrap { max-width: 760px; margin: 0 auto; }
-  h1 { font-size: 13px; margin: 0 0 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--accent);
+  h1 { font: 700 21px/1.1 "Barlow Condensed", sans-serif; margin: 0 0 10px; color: var(--text);
     transition: opacity .2s ease; }
   .search { position: relative; }
   input[type=search] { width: 100%; font: inherit; font-size: 17px; padding: 12px 46px 12px 14px; border-radius: 10px;
@@ -62,7 +49,7 @@
   .chip { flex: none; font: inherit; font-size: 14px; font-weight: 600; min-height: 36px; padding: 0 14px; border-radius: 999px;
     border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; white-space: nowrap;
     -webkit-tap-highlight-color: transparent; }
-  /* Selected filters: white text on solid purple in both themes. */
+  /* Selected filters: white text on solid blue. */
   .chip.chip[aria-pressed="true"], .chip.chip.on { background-color: var(--fill); border-color: var(--fill); color: var(--on-fill); }
   #brand { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
   #brand[aria-expanded="true"] { border-color: var(--accent); }
@@ -84,7 +71,7 @@
   .brand-list .chip small { font-weight: 500; opacity: .7; margin-left: 4px; font-size: 12px; }
   .hint { color: var(--muted); font-size: 14px; }
   .meta { display: flex; justify-content: space-between; gap: 8px; color: var(--muted);
-    font-size: 13px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+    font-size: 13px; margin-top: 8px; }
   main { padding: var(--header-h, 160px) 16px calc(env(safe-area-inset-bottom, 0px) + 80px); }
   #top { position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); z-index: 2;
     width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--accent);
@@ -92,27 +79,34 @@
     transition: opacity .2s, transform .2s; }
   #top[hidden] { display: block; opacity: 0; transform: translateY(12px); pointer-events: none; }
   ul { list-style: none; margin: 0; padding: 0; }
-  li { padding: 12px 2px; border-bottom: 1px solid var(--border);
-    display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; }
-  .name { font-weight: 700; overflow-wrap: anywhere; }
+  /* A compact price sheet: one tight line per item, striped rows, prices down the right edge. */
+  li { padding: 8px 4px; border-bottom: 1px solid var(--border);
+    display: grid; grid-template-columns: 1fr auto; gap: 1px 10px; align-items: baseline; }
+  li:nth-child(even) { background: var(--surface); }
+  .name { font: 600 18px/1.2 "Barlow Condensed", sans-serif; overflow-wrap: anywhere; }
   .brand { color: var(--muted); font-weight: 500; }
-  .price { font-weight: 800; color: var(--accent); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .details { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; color: var(--muted); align-items: center; }
+  .price { font: 700 21px/1.1 "Barlow Condensed", sans-serif; color: var(--accent); text-align: right; white-space: nowrap; }
+  .details { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 13px; color: var(--muted); align-items: center; }
   .details b { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
-  .left-ok b { color: var(--ok); } .left-low b { color: var(--warn); } .left-out b { color: var(--out); }
+  .vol { font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+  .left { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .left::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: currentColor; margin-right: 5px; vertical-align: 1px; }
+  .left-ok { color: var(--ok); } .left-low { color: var(--warn); } .left-out { color: var(--out); }
+  li.sold .name, li.sold .price { color: var(--muted); }
+  li.sold .price { text-decoration: line-through; }
   mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 1px; }
-  .note { font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--chip); color: var(--accent); }
+  .note { font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--chip); color: var(--accent); }
   #updated.live::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%;
     background: var(--ok); margin-right: 6px; vertical-align: 1px; }
   #updated.stale { color: var(--warn); }
   .empty { text-align: center; color: var(--muted); padding: 40px 0; }
-  @media (min-width: 640px) { li { padding: 14px 4px; } }
+  @media (min-width: 640px) { li { padding: 10px 8px; } }
 </style>
 </head>
 <body>
 <header>
   <div class="wrap">
-    <h1>Fragrance Lookup</h1>
+    <h1>Fragrance lookup</h1>
     <div class="search">
       <input id="q" type="search" placeholder="Search brand, fragrance, size…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Search">
       <button id="clear" type="button" aria-label="Clear search" hidden></button>
@@ -174,8 +168,8 @@ function highlight(text, tokens) {
 function nameHtml(it, tokens) {
   const name = it.name || "";
   if (it.brand && name.startsWith(it.brand + " "))
-    return `<span class="brand">${highlight(it.brand, tokens)}</span> ${highlight(name.slice(it.brand.length + 1), tokens)}`;
-  return highlight(name, tokens);
+    return `<span class="brand">${highlight(it.brand, tokens)}</span><span class="frag"> ${highlight(name.slice(it.brand.length + 1), tokens)}</span>`;
+  return `<span class="frag">${highlight(name, tokens)}</span>`;
 }
 
 function money(v) {
@@ -260,14 +254,14 @@ function render() {
     (hits.length > MAX_SHOWN ? ` (showing ${MAX_SHOWN})` : "") +
     (view.brand ? ` · ${view.brand}` : "") + (view.inStock ? " · in stock" : "");
   $("list").innerHTML = hits.slice(0, MAX_SHOWN).map(it => `
-    <li>
+    <li${isOut(it) ? ' class="sold"' : ""}>
       <div class="name">${nameHtml(it, tokens)}</div>
       <div class="price">${esc(money(it.price))}</div>
       <div class="details">
-        ${it.volume ? `<span>Volume <b>${highlight(it.volume, tokens)}</b></span>` : ""}
+        ${it.volume ? `<span class="vol">${highlight(it.volume, tokens)}</span>` : ""}
         ${it.note ? `<span class="note">${esc(it.note)}</span>` : ""}
         ${it.stock !== "" ? `<span>Stock <b>${esc(it.stock)}</b></span>` : ""}
-        ${it.left !== "" ? `<span class="${leftClass(it.left)}">Left <b>${esc(it.left)}</b></span>` : ""}
+        ${it.left !== "" ? `<span class="left ${leftClass(it.left)}">${esc(it.left)} left</span>` : ""}
       </div>
     </li>`).join("");
   const empty = $("empty");
