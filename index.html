@@ -36,6 +36,7 @@
   .wrap { max-width: 760px; margin: 0 auto; }
   h1 { font: 700 21px/1.1 "Archivo Narrow", sans-serif; margin: 0 0 10px; color: var(--text);
     transition: opacity .2s ease; }
+  #tab { font-size: 15px; font-weight: 600; color: var(--muted); margin-left: 6px; }
   .search { position: relative; }
   input[type=search] { width: 100%; font: inherit; font-size: 17px; padding: 12px 46px 12px 14px; border-radius: 10px;
     border: 1px solid var(--border); background: var(--surface); color: var(--text); outline: none; -webkit-appearance: none; appearance: none; }
@@ -105,7 +106,7 @@
 <body>
 <header>
   <div class="wrap">
-    <h1>Fragrance lookup</h1>
+    <h1>Fragrance lookup<span id="tab"></span></h1>
     <div class="search">
       <input id="q" type="search" placeholder="Search brand, fragrance, size…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Search">
       <button id="clear" type="button" aria-label="Clear search" hidden></button>
@@ -277,6 +278,7 @@ const TAB = "Nov-Dec";      // sheet tab to read; "" = first tab
 const REFRESH_SECONDS = 60; // how often to re-check stock while the page is open
 const CACHE_KEY = "lookup-feed";
 let lastFeed = "", lastFetched = null;
+$("tab").textContent = TAB;
 
 function setItems(list) {
   items = list.map(it => {
