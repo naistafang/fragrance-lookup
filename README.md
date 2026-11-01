@@ -26,7 +26,7 @@ Check it: open that URL in a browser. You should see product rows only, with no 
 In `index.html`, set:
 ```js
 const LIVE_URL = "https://script.google.com/macros/s/…/exec";
-const TAB = "Sept-Oct";
+const TAB = "Nov-Dec";
 ```
 
 ### 3. Publish on GitHub Pages
@@ -35,7 +35,7 @@ The site is at `https://<your-username>.github.io/<repo-name>/`.
 
 ## Day to day
 - **Stock or price changes:** there's nothing to do. Edit the sheet, and the site shows the change within a minute.
-- **New tab (e.g. Nov-Dec):** change `TAB` in `index.html` and push. If you set `TAB = ""`, the site always reads the first tab.
+- **New tab (e.g. Jan-Feb):** change `TAB` in `index.html` and push. If you set `TAB = ""`, the site always reads the first tab.
 - **Editing the Apps Script later:** go to **Deploy → Manage deployments → Edit**, and set **Version: New version**, so the URL stays the same.
 - **No connection:** the page shows the last stock it received, marked "Offline".
 
